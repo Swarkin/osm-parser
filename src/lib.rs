@@ -1,2 +1,5 @@
-pub mod parser;
-pub use parser::parse;
+mod parser;
+mod structs;
+
+pub use parser::*;
+pub use structs::*;
