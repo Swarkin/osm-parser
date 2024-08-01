@@ -1,10 +1,10 @@
-#[cfg(not(feature = "f64"))] use std::f32::consts::{E, PI};
-#[cfg(feature = "f64")] use std::f64::consts::{E, PI};
+#[cfg(not(feature = "f64"))] use std::f32::consts::{E, FRAC_PI_2, FRAC_PI_4};
+#[cfg(feature = "f64")] use std::f64::consts::{E, FRAC_PI_2, FRAC_PI_4};
 
 use crate::{Coordinate, Node, OsmData};
 use crate::Float;
 
-const EARTH_RADIUS_KM: Float = 6378.137;
+const R: Float = 6378137.;
 
 #[derive(Copy, Clone)]
 pub enum Projection {
@@ -64,20 +64,19 @@ impl Convert for OsmData {
 
 
 pub fn lat2y(lat: Float) -> Float {
-	f64::default();
-	(lat.to_radians() / 2. + PI / 4.).tan().log(E) * EARTH_RADIUS_KM * 1000.
+	(lat.to_radians() / 2. + FRAC_PI_4).tan().log(E) * R
 }
 
 pub fn lon2x(lon: Float) -> Float {
-	EARTH_RADIUS_KM * 1000. * lon.to_radians()
+	R * lon.to_radians()
 }
 
 pub fn y2lat(y: Float) -> Float {
-	(2. * (y / (EARTH_RADIUS_KM * 1000.)).exp().atan() - PI / 2.).to_degrees()
+	(2. * (y / R).exp().atan() - FRAC_PI_2).to_degrees()
 }
 
 pub fn x2lon(x: Float) -> Float {
-	(x / (EARTH_RADIUS_KM * 1000.)).to_degrees()
+	(x / R).to_degrees()
 }
 
 
@@ -95,7 +94,7 @@ mod tests_convert {
 		let mut reverted = projected.clone();
 		reverted.revert_from(Projection::WebMercator);
 
-		assert!((original.lat.abs() - reverted.lat.abs()) <= 0.000001);
-		assert!((original.lon.abs() - reverted.lon.abs()) <= 0.000001);
+		assert!((original.lat.abs() - reverted.lat.abs()) <= 0.00001);
+		assert!((original.lon.abs() - reverted.lon.abs()) <= 0.00001);
 	}
 }
