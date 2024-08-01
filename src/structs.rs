@@ -1,19 +1,13 @@
 use serde::Deserialize;
-use crate::parser::{Id, Nodes, Ways, Tags};
 
-
-#[derive(Copy, Clone)]
-pub enum Projection {
-	/// https://wiki.openstreetmap.org/wiki/Web_Mercator
-	EPSG3857,
-}
-
+use crate::Float;
+use crate::parser::{Id, Nodes, Tags, Ways};
 
 //region Coordinate
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Coordinate {
-	pub lat: f32,
-	pub lon: f32,
+	pub lat: Float,
+	pub lon: Float,
 }
 
 impl Coordinate {
@@ -21,33 +15,8 @@ impl Coordinate {
 	pub const MIN: Self = Self { lat: -90.0, lon: -180.0 };
 	pub const MAX: Self = Self { lat: 90.0, lon: 180.0 };
 
-	pub const fn new(lat: f32, lon: f32) -> Self {
+	pub const fn new(lat: Float, lon: Float) -> Self {
 		Self { lat, lon }
-	}
-
-	pub fn project_to(&mut self, p: Projection) {
-		use std::f32::consts::FRAC_PI_2;
-		
-		match p {
-			Projection::EPSG3857 => {
-				let v = self.lat;
-				self.lat = self.lon / FRAC_PI_2;
-				self.lon = -v;
-			}
-		}
-	}
-}
-
-#[cfg(test)]
-mod tests_coordinate {
-	use super::*;
-
-	#[test]
-	fn project_to_epsg3857() {
-		let mut coords = Coordinate::new(41.304, -81.9017);
-		coords.project_to(Projection::EPSG3857);
-
-		assert_eq!(coords, Coordinate::new(-52.140244, -41.304));
 	}
 }
 //endregion
@@ -61,10 +30,10 @@ pub struct Bounds {
 
 #[derive(Debug, Default, Deserialize)]
 pub(crate) struct RawBounds {
-	pub minlat: f32,
-	pub maxlat: f32,
-	pub minlon: f32,
-	pub maxlon: f32,
+	pub minlat: Float,
+	pub maxlat: Float,
+	pub minlon: Float,
+	pub maxlon: Float,
 }
 
 impl From<RawBounds> for Bounds {
@@ -79,6 +48,10 @@ impl From<RawBounds> for Bounds {
 impl Bounds {
 	pub const ZERO: Self = Self { min: Coordinate::ZERO, max: Coordinate::ZERO };
 	pub const FULL: Self = Self { min: Coordinate::MIN, max: Coordinate::MAX };
+
+	pub const fn new(min: Coordinate, max: Coordinate) -> Self {
+		Self { min, max }
+	}
 
 	/// Computes the exact [Bounds] by looping trough the given [Nodes].
 	pub fn compute(nodes: &Nodes) -> Self {
@@ -102,8 +75,8 @@ impl Bounds {
 	/// Calculate the center of the current bounds.
 	pub fn center(&self) -> Coordinate {
 		Coordinate {
-			lat: self.min.lat + (self.max.lat - self.min.lat),
-			lon: self.min.lon + (self.max.lon - self.min.lon),
+			lat: (self.min.lat + self.max.lat) / 2.0,
+			lon: (self.min.lon + self.max.lon) / 2.0,
 		}
 	}
 }
@@ -112,15 +85,29 @@ impl Bounds {
 mod tests_bounds {
 	use super::*;
 
+	const BOUNDS: Bounds = Bounds::new(
+		Coordinate::new(41.30365, -81.90212),
+		Coordinate::new(41.30453, -81.90126),
+	);
+
 	#[test]
 	fn compute() {
 		let nodes = Nodes::from([
-			(1, Node::from_coordinate(Coordinate::MIN)),
-			(2, Node::from_coordinate(Coordinate::MAX)),
+			(1, Node::from_coordinate(Coordinate::new(41.30365, -81.90171))),
+			(2, Node::from_coordinate(Coordinate::new(41.30453, -81.90169))),
+			(3, Node::from_coordinate(Coordinate::new(41.30407, -81.90212))),
+			(4, Node::from_coordinate(Coordinate::new(41.30407, -81.90126))),
 		]);
 
-		let bounds = Bounds::compute(&nodes);
-		assert_eq!(bounds, Bounds::FULL);
+		assert_eq!(Bounds::compute(&nodes), BOUNDS);
+	}
+
+	#[test]
+	fn center() {
+		#[cfg(feature = "f64")]
+		assert_eq!(BOUNDS.center(), Coordinate::new(41.30409, -81.90169));
+		#[cfg(not(feature = "f64"))]
+		assert_eq!(BOUNDS.center(), Coordinate::new(41.304092, -81.90169));
 	}
 }
 //endregion
@@ -140,8 +127,8 @@ pub struct Node {
 #[derive(Debug, Default, Deserialize)]
 pub(crate) struct RawNode {
 	pub id: Id,
-	pub lat: f32,
-	pub lon: f32,
+	pub lat: Float,
+	pub lon: Float,
 	pub timestamp: String,
 	pub version: u32,
 	pub changeset: u64,
@@ -166,10 +153,6 @@ impl Node {
 		let mut node = Node::default_const();
 		node.pos = coords;
 		node
-	}
-
-	pub fn project_to(&mut self, p: Projection) {
-		self.pos.project_to(p);
 	}
 }
 
@@ -243,18 +226,8 @@ pub(crate) struct RawOsmData {
 }
 
 impl OsmData {
-	pub fn project_to(&mut self, p: Projection) {
-		for node in self.nodes.values_mut() {
-			node.project_to(p);
-		}
-	}
-
 	/// Computes the exact Bounds by looping trough every Node.
 	pub fn compute_bounds(&mut self) {
-		if self.nodes.is_empty() {
-			self.bounds = Bounds::default();
-		}
-
 		self.bounds = Bounds::compute(&self.nodes);
 	}
 }

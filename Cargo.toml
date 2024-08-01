@@ -1,6 +1,6 @@
 [package]
 name = "osm-parser"
-version = "0.2.0"
+version = "0.3.0"
 license = "MIT"
 authors = ["swarkin"]
 edition = "2021"
@@ -8,3 +8,7 @@ edition = "2021"
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[features]
+# Use 64-bit floats
+f64 = []
