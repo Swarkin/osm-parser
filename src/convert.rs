@@ -10,6 +10,8 @@ const R: Float = 6378137.;
 pub enum Projection {
 	/// https://wiki.openstreetmap.org/wiki/Web_Mercator
 	WebMercator,
+	/// Custom projection
+	Custom(fn(&mut Coordinate)),
 }
 
 
@@ -25,6 +27,9 @@ impl Convert for Coordinate {
 				self.lat = lat2y(self.lat);
 				self.lon = lon2x(self.lon);
 			}
+			Projection::Custom(f) => {
+				f(self);
+			}
 		}
 	}
 
@@ -33,6 +38,9 @@ impl Convert for Coordinate {
 			Projection::WebMercator => {
 				self.lat = y2lat(self.lat);
 				self.lon = x2lon(self.lon);
+			}
+			Projection::Custom(f) => {
+				f(self);
 			}
 		}
 	}
@@ -96,5 +104,13 @@ mod tests_convert {
 
 		assert!((original.lat.abs() - reverted.lat.abs()) <= 0.00001);
 		assert!((original.lon.abs() - reverted.lon.abs()) <= 0.00001);
+	}
+
+	#[test]
+	fn projection_custom() {
+		let mut coordinate = Coordinate::new(50., 10.);
+		coordinate.convert_to(Projection::Custom(|c| c.lat = -c.lat ));
+		
+		assert_eq!(coordinate, Coordinate::new(-50., 10.));
 	}
 }
