@@ -192,6 +192,7 @@ pub struct Way {
 }
 
 impl Way {
+	#[deprecated]
 	pub fn tags_to_string(&self) -> String {
 		if let Some(tags) = &self.tags {
 			tags.iter()
