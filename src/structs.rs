@@ -24,7 +24,7 @@ impl Coordinate {
 //endregion
 
 //region Bounds
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Bounds {
 	pub min: Coordinate,
 	pub max: Coordinate,
@@ -115,7 +115,7 @@ mod tests_bounds {
 //endregion
 
 //region Node
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Node {
 	pub id: Id,
 	pub pos: Coordinate,
@@ -180,7 +180,7 @@ impl From<RawNode> for Node {
 //endregion
 
 //region Way
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Deserialize)]
 pub struct Way {
 	pub id: Id,
 	pub timestamp: String,
@@ -204,7 +204,7 @@ impl Way {
 //endregion
 
 //region Osm
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct OsmData {
 	pub version: String,
 	pub generator: String,
