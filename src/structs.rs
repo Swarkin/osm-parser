@@ -55,26 +55,26 @@ impl Bounds {
 		Self { min, max }
 	}
 
-	/// Computes the exact [Bounds] by looping trough the given [Nodes].
-	pub fn compute(nodes: &Nodes) -> Self {
+	/// Calculates the exact [Bounds] by iterating trough all given [Nodes].
+	pub fn calculate(nodes: &Nodes) -> Self {
 		if nodes.is_empty() {
-			return Bounds::ZERO;
+			return Self::ZERO;
 		}
 
-		let mut max = Coordinate::NEG_INF;
 		let mut min = Coordinate::INF;
+		let mut max = Coordinate::NEG_INF;
 
 		for node in nodes.values() {
 			min.lat = min.lat.min(node.pos.lat);
-			max.lat = max.lat.max(node.pos.lat);
 			min.lon = min.lon.min(node.pos.lon);
+			max.lat = max.lat.max(node.pos.lat);
 			max.lon = max.lon.max(node.pos.lon);
 		}
 
-		Bounds { min, max }
+		Self { min, max }
 	}
 
-	/// Calculate the center of the current bounds.
+	/// Calculates the center [Coordinate] of the current [Bounds].
 	pub fn center(&self) -> Coordinate {
 		Coordinate {
 			lat: (self.min.lat + self.max.lat) / 2.0,
@@ -101,7 +101,7 @@ mod tests_bounds {
 			(4, Node::from_coordinate(Coordinate::new(41.30407, -81.90126))),
 		]);
 
-		assert_eq!(Bounds::compute(&nodes), BOUNDS);
+		assert_eq!(Bounds::calculate(&nodes), BOUNDS);
 	}
 
 	#[test]
@@ -229,9 +229,9 @@ pub(crate) struct RawOsmData {
 }
 
 impl OsmData {
-	/// Computes the exact Bounds by looping trough every Node.
-	pub fn compute_bounds(&mut self) {
-		self.bounds = Bounds::compute(&self.nodes);
+	/// Calculates the exact [Bounds] by iterating trough all given [Nodes].
+	pub fn calculate_bounds(&mut self) {
+		self.bounds = Bounds::calculate(&self.nodes);
 	}
 }
 //endregion
