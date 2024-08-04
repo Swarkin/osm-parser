@@ -28,7 +28,7 @@ pub struct Bounds {
 	pub max: Coordinate,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Default, Deserialize)]
 pub(crate) struct RawBounds {
 	pub minlat: Float,
 	pub maxlat: Float,
@@ -124,7 +124,7 @@ pub struct Node {
 	pub tags: Option<Tags>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Deserialize)]
 pub(crate) struct RawNode {
 	pub id: Id,
 	pub lat: Float,
@@ -214,7 +214,7 @@ pub struct OsmData {
 	pub ways: Ways,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub(crate) struct RawOsmData {
 	pub version: String,
 	pub generator: String,
