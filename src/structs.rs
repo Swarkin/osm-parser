@@ -14,6 +14,8 @@ impl Coordinate {
 	pub const ZERO: Self = Self { lat: 0.0, lon: 0.0 };
 	pub const MIN: Self = Self { lat: -90.0, lon: -180.0 };
 	pub const MAX: Self = Self { lat: 90.0, lon: 180.0 };
+	pub const INF: Self = Self { lat: Float::INFINITY, lon: Float::INFINITY };
+	pub const NEG_INF: Self = Self { lat: Float::NEG_INFINITY, lon: Float::NEG_INFINITY };
 
 	pub const fn new(lat: Float, lon: Float) -> Self {
 		Self { lat, lon }
@@ -59,8 +61,8 @@ impl Bounds {
 			return Bounds::ZERO;
 		}
 
-		let mut min = Coordinate::MAX;
-		let mut max = Coordinate::MIN;
+		let mut max = Coordinate::NEG_INF;
+		let mut min = Coordinate::INF;
 
 		for node in nodes.values() {
 			min.lat = min.lat.min(node.pos.lat);
