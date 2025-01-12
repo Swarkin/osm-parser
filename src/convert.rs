@@ -1,10 +1,8 @@
-#[cfg(not(feature = "f64"))] use std::f32::consts::{E, FRAC_PI_2, FRAC_PI_4};
-#[cfg(feature = "f64")] use std::f64::consts::{E, FRAC_PI_2, FRAC_PI_4};
+use std::f64::consts::{E, FRAC_PI_2, FRAC_PI_4};
 
 use crate::{Coordinate, Node, OsmData};
-use crate::Float;
 
-const R: Float = 6378137.;
+const R: f64 = 6378137.0;
 
 #[derive(Copy, Clone)]
 pub enum Projection {
@@ -71,19 +69,19 @@ impl Convert for OsmData {
 }
 
 
-pub fn lat2y(lat: Float) -> Float {
+pub fn lat2y(lat: f64) -> f64 {
 	(lat.to_radians() / 2. + FRAC_PI_4).tan().log(E) * R
 }
 
-pub fn lon2x(lon: Float) -> Float {
+pub fn lon2x(lon: f64) -> f64 {
 	R * lon.to_radians()
 }
 
-pub fn y2lat(y: Float) -> Float {
+pub fn y2lat(y: f64) -> f64 {
 	(2. * (y / R).exp().atan() - FRAC_PI_2).to_degrees()
 }
 
-pub fn x2lon(x: Float) -> Float {
+pub fn x2lon(x: f64) -> f64 {
 	(x / R).to_degrees()
 }
 

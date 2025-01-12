@@ -1,15 +1,8 @@
-use std::collections::HashMap;
-use crate::structs::*;
-
-pub type Id = u64;
-pub type Nodes = HashMap<Id, Node>;
-pub type Ways = HashMap<Id, Way>;
-pub type Tags = HashMap<String, String>;
-
+use crate::types::*;
 
 /// Parse JSON data from an .osm file aquired trough https://wiki.openstreetmap.org/wiki/API_v0.6#Retrieving_map_data_by_bounding_box:_GET_/api/0.6/map.
 pub fn parse(path: &str) -> Result<OsmData, Box<dyn std::error::Error>> {
-	let file = std::fs::read_to_string(path).unwrap();
+	let file = std::fs::read_to_string(path)?;
 	let raw = serde_json::from_str::<RawOsmData>(&file)?;
 
 	let mut nodes = Nodes::new();
@@ -29,10 +22,10 @@ pub fn parse(path: &str) -> Result<OsmData, Box<dyn std::error::Error>> {
 			"relation" => {
 				// relations are not supported
 			}
-			_ => Err("invalid type")?,
+			_ => Err("invalid element type")?,
 		}
 	}
-	
+
 	Ok(OsmData {
 		version: raw.version,
 		generator: raw.generator,

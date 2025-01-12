@@ -1,24 +1,39 @@
+use std::collections::HashMap;
 use serde::Deserialize;
 
-use crate::Float;
-use crate::parser::{Id, Nodes, Tags, Ways};
+pub type Id = u64;
+pub type Nodes = HashMap<Id, Node>;
+pub type Ways = HashMap<Id, Way>;
+pub type Tags = HashMap<String, String>;
 
 //region Coordinate
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Coordinate {
-	pub lat: Float,
-	pub lon: Float,
+	pub lat: f64,
+	pub lon: f64,
 }
 
 impl Coordinate {
 	pub const ZERO: Self = Self { lat: 0.0, lon: 0.0 };
 	pub const MIN: Self = Self { lat: -90.0, lon: -180.0 };
 	pub const MAX: Self = Self { lat: 90.0, lon: 180.0 };
-	pub const INF: Self = Self { lat: Float::INFINITY, lon: Float::INFINITY };
-	pub const NEG_INF: Self = Self { lat: Float::NEG_INFINITY, lon: Float::NEG_INFINITY };
+	pub const INF: Self = Self { lat: f64::INFINITY, lon: f64::INFINITY };
+	pub const NEG_INF: Self = Self { lat: f64::NEG_INFINITY, lon: f64::NEG_INFINITY };
 
-	pub const fn new(lat: Float, lon: Float) -> Self {
+	pub const fn new(lat: f64, lon: f64) -> Self {
 		Self { lat, lon }
+	}
+}
+
+impl From<[f64; 2]> for Coordinate {
+	fn from(value: [f64; 2]) -> Self {
+		Self::new(value[0], value[1])
+	}
+}
+
+impl From<(f64, f64)> for Coordinate {
+	fn from(value: (f64, f64)) -> Self {
+		Self::new(value.0, value.1)
 	}
 }
 //endregion
@@ -32,19 +47,10 @@ pub struct Bounds {
 
 #[derive(Default, Deserialize)]
 pub(crate) struct RawBounds {
-	pub minlat: Float,
-	pub maxlat: Float,
-	pub minlon: Float,
-	pub maxlon: Float,
-}
-
-impl From<RawBounds> for Bounds {
-	fn from(value: RawBounds) -> Self {
-		Bounds {
-			min: Coordinate::new(value.minlat, value.minlon),
-			max: Coordinate::new(value.maxlat, value.maxlon),
-		}
-	}
+	pub minlat: f64,
+	pub maxlat: f64,
+	pub minlon: f64,
+	pub maxlon: f64,
 }
 
 impl Bounds {
@@ -83,6 +89,15 @@ impl Bounds {
 	}
 }
 
+impl From<RawBounds> for Bounds {
+	fn from(value: RawBounds) -> Self {
+		Bounds {
+			min: Coordinate { lat: value.minlat, lon: value.minlon },
+			max: Coordinate { lat: value.maxlat, lon: value.maxlon } ,
+		}
+	}
+}
+
 #[cfg(test)]
 mod tests_bounds {
 	use super::*;
@@ -95,10 +110,10 @@ mod tests_bounds {
 	#[test]
 	fn compute() {
 		let nodes = Nodes::from([
-			(1, Node::from_coordinate(Coordinate::new(41.30365, -81.90171))),
-			(2, Node::from_coordinate(Coordinate::new(41.30453, -81.90169))),
-			(3, Node::from_coordinate(Coordinate::new(41.30407, -81.90212))),
-			(4, Node::from_coordinate(Coordinate::new(41.30407, -81.90126))),
+			(1, Node::default().with_coordinate([41.30365, -81.90171])),
+			(2, Node::default().with_coordinate([41.30453, -81.90169])),
+			(3, Node::default().with_coordinate([41.30407, -81.90212])),
+			(4, Node::default().with_coordinate([41.30407, -81.90126])),
 		]);
 
 		assert_eq!(Bounds::calculate(&nodes), BOUNDS);
@@ -106,16 +121,13 @@ mod tests_bounds {
 
 	#[test]
 	fn center() {
-		#[cfg(feature = "f64")]
 		assert_eq!(BOUNDS.center(), Coordinate::new(41.30409, -81.90169));
-		#[cfg(not(feature = "f64"))]
-		assert_eq!(BOUNDS.center(), Coordinate::new(41.304092, -81.90169));
 	}
 }
 //endregion
 
 //region Node
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct Node {
 	pub id: Id,
 	pub pos: Coordinate,
@@ -123,57 +135,38 @@ pub struct Node {
 	pub version: u32,
 	pub changeset: u64,
 	pub user: String,
-	pub tags: Option<Tags>,
+	pub tags: Tags,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct RawNode {
 	pub id: Id,
-	pub lat: Float,
-	pub lon: Float,
+	pub lat: f64,
+	pub lon: f64,
 	pub timestamp: String,
 	pub version: u32,
 	pub changeset: u64,
 	pub user: String,
-	pub tags: Option<Tags>,
+	#[serde(default)]
+	pub tags: Tags,
 }
 
 impl Node {
-	pub const fn default_const() -> Self {
-		Self {
-			id: 0,
-			pos: Coordinate::ZERO,
-			timestamp: String::new(),
-			version: 0,
-			changeset: 0,
-			user: String::new(),
-			tags: None,
-		}
-	}
-
-	pub const fn from_coordinate(coords: Coordinate) -> Self {
-		let mut node = Node::default_const();
-		node.pos = coords;
-		node
-	}
-}
-
-impl Default for Node {
-	fn default() -> Self {
-		Self::default_const()
+	fn with_coordinate(self, coord: impl Into<Coordinate>) -> Self {
+		Self { pos: coord.into(), ..Default::default() }
 	}
 }
 
 impl From<RawNode> for Node {
-	fn from(value: RawNode) -> Self {
+	fn from(n: RawNode) -> Self {
 		Self {
-			id: value.id,
-			pos: Coordinate::new(value.lat, value.lon),
-			timestamp: value.timestamp,
-			version: value.version,
-			changeset: value.changeset,
-			user: value.user,
-			tags: value.tags,
+			id: n.id,
+			pos: Coordinate { lat: n.lat, lon: n.lon },
+			timestamp: n.timestamp,
+			version: n.version,
+			changeset: n.changeset,
+			user: n.user,
+			tags: n.tags,
 		}
 	}
 }
@@ -188,19 +181,8 @@ pub struct Way {
 	pub changeset: u64,
 	pub user: String,
 	pub nodes: Vec<Id>,
-	pub tags: Option<Tags>,
-}
-
-impl Way {
-	#[deprecated]
-	pub fn tags_to_string(&self) -> String {
-		if let Some(tags) = &self.tags {
-			tags.iter()
-				.map(|(k, v)| { format!("{k}: {v}") })
-				.collect::<Vec<_>>()
-				.join("\n")
-		} else { String::new() }
-	}
+	#[serde(default)]
+	pub tags: Tags,
 }
 //endregion
 
