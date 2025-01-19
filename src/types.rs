@@ -215,5 +215,9 @@ impl OsmData {
 	pub fn calculate_bounds(&mut self) {
 		self.bounds = Bounds::calculate(&self.nodes);
 	}
+	
+	pub fn is_empty(&self) -> bool {
+		self.nodes.is_empty() && self.ways.is_empty()
+	}
 }
 //endregion
