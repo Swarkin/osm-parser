@@ -1,5 +1,8 @@
-use std::collections::HashMap;
+pub mod raw;
+
+use raw::*;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 pub type Id = u64;
 pub type Nodes = HashMap<Id, Node>;
@@ -43,14 +46,6 @@ impl From<(f64, f64)> for Coordinate {
 pub struct Bounds {
 	pub min: Coordinate,
 	pub max: Coordinate,
-}
-
-#[derive(Default, Deserialize)]
-pub(crate) struct RawBounds {
-	pub minlat: f64,
-	pub maxlat: f64,
-	pub minlon: f64,
-	pub maxlon: f64,
 }
 
 impl Bounds {
@@ -138,19 +133,6 @@ pub struct Node {
 	pub tags: Tags,
 }
 
-#[derive(Deserialize)]
-pub(crate) struct RawNode {
-	pub id: Id,
-	pub lat: f64,
-	pub lon: f64,
-	pub timestamp: String,
-	pub version: u32,
-	pub changeset: u64,
-	pub user: String,
-	#[serde(default)]
-	pub tags: Tags,
-}
-
 impl Node {
 	fn with_coordinate(self, coord: impl Into<Coordinate>) -> Self {
 		Self { pos: coord.into(), ..Default::default() }
@@ -199,23 +181,12 @@ pub struct OsmData {
 	pub ways: Ways,
 }
 
-#[derive(Deserialize)]
-pub(crate) struct RawOsmData {
-	pub version: String,
-	pub generator: String,
-	pub copyright: String,
-	pub attribution: String,
-	pub license: String,
-	pub bounds: RawBounds,
-	pub elements: Vec<serde_json::Value>,
-}
-
 impl OsmData {
 	/// Calculates the exact [Bounds] by iterating trough all given [Nodes].
 	pub fn calculate_bounds(&mut self) {
 		self.bounds = Bounds::calculate(&self.nodes);
 	}
-	
+
 	pub fn is_empty(&self) -> bool {
 		self.nodes.is_empty() && self.ways.is_empty()
 	}

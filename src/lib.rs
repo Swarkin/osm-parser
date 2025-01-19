@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 mod parser;
-mod types;
+pub mod types;
 pub mod convert;
 
-pub use parser::*;
-pub use types::*;
+pub use parser::parse;
+pub use types::{Coordinate, Node, Nodes, OsmData, Way, Ways};

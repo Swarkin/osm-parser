@@ -1,7 +1,9 @@
+use crate::types::raw::*;
 use crate::types::*;
 
 /// Parse JSON data from an .osm file aquired trough https://wiki.openstreetmap.org/wiki/API_v0.6#Retrieving_map_data_by_bounding_box:_GET_/api/0.6/map.
 pub fn parse(path: &str) -> Result<OsmData, Box<dyn std::error::Error>> {
+	
 	let file = std::fs::read_to_string(path)?;
 	let raw = serde_json::from_str::<RawOsmData>(&file)?;
 
