@@ -1,6 +1,6 @@
 [package]
 name = "osm-parser"
-version = "2.0.0"
+version = "2.0.1"
 license = "MIT"
 authors = ["swarkin"]
 edition = "2021"
