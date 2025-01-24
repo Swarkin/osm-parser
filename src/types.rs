@@ -1,7 +1,7 @@
 pub mod raw;
 
 use raw::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub type Id = u64;
@@ -10,7 +10,7 @@ pub type Ways = HashMap<Id, Way>;
 pub type Tags = HashMap<String, String>;
 
 //region Coordinate
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Coordinate {
 	pub lat: f64,
 	pub lon: f64,
@@ -42,7 +42,7 @@ impl From<(f64, f64)> for Coordinate {
 //endregion
 
 //region Bounds
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Bounds {
 	pub min: Coordinate,
 	pub max: Coordinate,
@@ -122,7 +122,7 @@ mod tests_bounds {
 //endregion
 
 //region Node
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Node {
 	pub id: Id,
 	pub pos: Coordinate,
@@ -155,7 +155,7 @@ impl From<RawNode> for Node {
 //endregion
 
 //region Way
-#[derive(Debug, Default, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Way {
 	pub id: Id,
 	pub timestamp: String,
@@ -169,7 +169,7 @@ pub struct Way {
 //endregion
 
 //region Osm
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct OsmData {
 	pub version: String,
 	pub generator: String,
