@@ -7,7 +7,15 @@ use std::collections::HashMap;
 pub type Id = u64;
 pub type Nodes = HashMap<Id, Node>;
 pub type Ways = HashMap<Id, Way>;
-pub type Tags = HashMap<String, String>;
+
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Tags(HashMap<String, String>);
+
+impl Tags {
+	pub fn merge(&mut self, other: Tags) {
+		self.0.extend(other.0);
+	}
+}
 
 //region Coordinate
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
