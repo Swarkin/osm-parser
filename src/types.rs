@@ -7,15 +7,7 @@ use std::collections::HashMap;
 pub type Id = u64;
 pub type Nodes = HashMap<Id, Node>;
 pub type Ways = HashMap<Id, Way>;
-
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Tags(HashMap<String, String>);
-
-impl Tags {
-	pub fn merge(&mut self, other: Tags) {
-		self.0.extend(other.0);
-	}
-}
+pub type Tags = HashMap<String, String>;
 
 //region Coordinate
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
@@ -235,6 +227,27 @@ impl TryFrom<RawOsmData> for OsmData {
 			nodes,
 			ways,
 		})
+	}
+}
+//endregion
+
+//region Tags
+pub fn merge_tags(to: &mut Tags, from: Tags) {
+	to.extend(from);
+}
+
+#[cfg(test)]
+mod tests_tags {
+	use super::*;
+
+	#[test]
+	fn merge() {
+		let from = Tags::from([(String::from("1"), String::from("2"))]);
+		let mut to = Tags::from([(String::from("1"), String::from("3"))]);
+		merge_tags(&mut to, from);
+		
+		let expected = Tags::from([(String::from("1"), String::from("2"))]);
+		assert_eq!(to, expected);
 	}
 }
 //endregion
