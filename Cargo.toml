@@ -1,9 +1,9 @@
 [package]
 name = "osm-parser"
-version = "3.0.0"
+version = "4.0.0"
 license = "MIT"
 authors = ["swarkin"]
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/Swarkin/osm-parser"
 
 [dependencies]
