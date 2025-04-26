@@ -193,7 +193,7 @@ impl OsmData {
 }
 
 impl TryFrom<RawOsmData> for OsmData {
-	type Error = Box<dyn std::error::Error>;
+	type Error = Box<dyn std::error::Error + Sync + Send>;
 
 	fn try_from(raw: RawOsmData) -> Result<Self, Self::Error> {
 		let mut nodes = Nodes::new();
@@ -245,7 +245,7 @@ mod tests_tags {
 		let from = Tags::from([(String::from("1"), String::from("2"))]);
 		let mut to = Tags::from([(String::from("1"), String::from("3"))]);
 		merge_tags(&mut to, from);
-		
+
 		let expected = Tags::from([(String::from("1"), String::from("2"))]);
 		assert_eq!(to, expected);
 	}
