@@ -2,7 +2,12 @@ pub mod raw;
 
 use raw::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
+#[cfg(not(feature = "rustc_hash"))]
+type HashMap<K, V> = std::collections::HashMap<K, V>;
+
+#[cfg(feature = "rustc_hash")]
+type HashMap<K, V> = rustc_hash::FxHashMap<K, V>;
 
 pub type Id = u64;
 pub type Nodes = HashMap<Id, Node>;
