@@ -109,12 +109,12 @@ mod tests_bounds {
 
 	#[test]
 	fn compute() {
-		let nodes = Nodes::from([
-			(1, Node::default().with_coordinate([41.30365, -81.90171])),
-			(2, Node::default().with_coordinate([41.30453, -81.90169])),
-			(3, Node::default().with_coordinate([41.30407, -81.90212])),
-			(4, Node::default().with_coordinate([41.30407, -81.90126])),
-		]);
+		let mut nodes = Nodes::default();
+
+		nodes.insert(1, Node::default().with_coordinate([41.30365, -81.90171]));
+		nodes.insert(2, Node::default().with_coordinate([41.30453, -81.90169]));
+		nodes.insert(3, Node::default().with_coordinate([41.30407, -81.90212]));
+		nodes.insert(4, Node::default().with_coordinate([41.30407, -81.90126]));
 
 		assert_eq!(Bounds::calculate(&nodes), BOUNDS);
 	}
@@ -201,8 +201,8 @@ impl TryFrom<RawOsmData> for OsmData {
 	type Error = Box<dyn std::error::Error + Sync + Send>;
 
 	fn try_from(raw: RawOsmData) -> Result<Self, Self::Error> {
-		let mut nodes = Nodes::new();
-		let mut ways = Ways::new();
+		let mut nodes = Nodes::default();
+		let mut ways = Ways::default();
 
 		for e in raw.elements {
 			let t = e["type"].as_str().ok_or("\"type\" is not a string")?;
@@ -247,11 +247,17 @@ mod tests_tags {
 
 	#[test]
 	fn merge() {
-		let from = Tags::from([(String::from("1"), String::from("2"))]);
-		let mut to = Tags::from([(String::from("1"), String::from("3"))]);
+		let mut from = Tags::default();
+		from.insert(String::from("1"), String::from("2"));
+
+		let mut to = Tags::default();
+		to.insert(String::from("1"), String::from("3"));
+
 		merge_tags(&mut to, from);
 
-		let expected = Tags::from([(String::from("1"), String::from("2"))]);
+		let mut expected = Tags::default();
+		expected.insert(String::from("1"), String::from("2"));
+
 		assert_eq!(to, expected);
 	}
 }
