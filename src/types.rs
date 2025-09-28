@@ -1,6 +1,6 @@
 pub mod raw;
 
-use raw::*;
+use crate::types::raw::{RawBounds, RawNode, RawOsmData};
 use serde::{Deserialize, Serialize};
 
 #[cfg(not(feature = "rustc_hash"))]
@@ -9,7 +9,7 @@ type HashMap<K, V> = std::collections::HashMap<K, V>;
 #[cfg(feature = "rustc_hash")]
 type HashMap<K, V> = rustc_hash::FxHashMap<K, V>;
 
-pub type Id = u64;
+pub type Id = i64;
 pub type Nodes = HashMap<Id, Node>;
 pub type Ways = HashMap<Id, Way>;
 pub type Tags = HashMap<String, String>;
@@ -28,6 +28,7 @@ impl Coordinate {
 	pub const INF: Self = Self { lat: f64::INFINITY, lon: f64::INFINITY };
 	pub const NEG_INF: Self = Self { lat: f64::NEG_INFINITY, lon: f64::NEG_INFINITY };
 
+	#[must_use]
 	pub const fn new(lat: f64, lon: f64) -> Self {
 		Self { lat, lon }
 	}
@@ -57,11 +58,13 @@ impl Bounds {
 	pub const ZERO: Self = Self { min: Coordinate::ZERO, max: Coordinate::ZERO };
 	pub const FULL: Self = Self { min: Coordinate::MIN, max: Coordinate::MAX };
 
+	#[must_use]
 	pub const fn new(min: Coordinate, max: Coordinate) -> Self {
 		Self { min, max }
 	}
 
 	/// Calculates the exact [Bounds] by iterating trough all given [Nodes].
+	#[must_use]
 	pub fn calculate(nodes: &Nodes) -> Self {
 		if nodes.is_empty() {
 			return Self::ZERO;
@@ -81,17 +84,18 @@ impl Bounds {
 	}
 
 	/// Calculates the center [Coordinate] of the current [Bounds].
-	pub fn center(&self) -> Coordinate {
+	#[must_use]
+	pub const fn center(&self) -> Coordinate {
 		Coordinate {
-			lat: (self.min.lat + self.max.lat) / 2.0,
-			lon: (self.min.lon + self.max.lon) / 2.0,
+			lat: f64::midpoint(self.min.lat, self.max.lat),
+			lon: f64::midpoint(self.min.lon, self.max.lon),
 		}
 	}
 }
 
 impl From<RawBounds> for Bounds {
 	fn from(value: RawBounds) -> Self {
-		Bounds {
+		Self {
 			min: Coordinate { lat: value.minlat, lon: value.minlon },
 			max: Coordinate { lat: value.maxlat, lon: value.maxlon } ,
 		}
@@ -111,10 +115,10 @@ mod tests_bounds {
 	fn compute() {
 		let mut nodes = Nodes::default();
 
-		nodes.insert(1, Node::default().with_coordinate([41.30365, -81.90171]));
-		nodes.insert(2, Node::default().with_coordinate([41.30453, -81.90169]));
-		nodes.insert(3, Node::default().with_coordinate([41.30407, -81.90212]));
-		nodes.insert(4, Node::default().with_coordinate([41.30407, -81.90126]));
+		nodes.insert(1, Node::from_coordinate([41.30365, -81.90171]));
+		nodes.insert(2, Node::from_coordinate([41.30453, -81.90169]));
+		nodes.insert(3, Node::from_coordinate([41.30407, -81.90212]));
+		nodes.insert(4, Node::from_coordinate([41.30407, -81.90126]));
 
 		assert_eq!(Bounds::calculate(&nodes), BOUNDS);
 	}
@@ -139,7 +143,7 @@ pub struct Node {
 }
 
 impl Node {
-	fn with_coordinate(self, coord: impl Into<Coordinate>) -> Self {
+	fn from_coordinate(coord: impl Into<Coordinate>) -> Self {
 		Self { pos: coord.into(), ..Default::default() }
 	}
 }
@@ -160,7 +164,7 @@ impl From<RawNode> for Node {
 //endregion
 
 //region Way
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Way {
 	pub id: Id,
 	pub timestamp: String,
@@ -192,6 +196,7 @@ impl OsmData {
 		self.bounds = Bounds::calculate(&self.nodes);
 	}
 
+	#[must_use]
 	pub fn is_empty(&self) -> bool {
 		self.nodes.is_empty() && self.ways.is_empty()
 	}
@@ -222,7 +227,7 @@ impl TryFrom<RawOsmData> for OsmData {
 			}
 		}
 
-		Ok(OsmData {
+		Ok(Self {
 			version: raw.version,
 			generator: raw.generator,
 			copyright: raw.copyright,

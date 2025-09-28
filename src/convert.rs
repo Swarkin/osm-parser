@@ -1,12 +1,12 @@
-use std::f64::consts::{E, FRAC_PI_2, FRAC_PI_4};
+use std::f64::consts::{FRAC_PI_2, FRAC_PI_4};
 
 use crate::{Coordinate, Node, OsmData};
 
-const R: f64 = 6378137.0;
+const R: f64 = 6_378_137.0;
 
 #[derive(Copy, Clone)]
 pub enum Projection {
-	/// https://wiki.openstreetmap.org/wiki/Web_Mercator
+	/// <https://wiki.openstreetmap.org/wiki/Web_Mercator>
 	WebMercator,
 	/// Custom projection
 	Custom(fn(&mut Coordinate)),
@@ -32,7 +32,7 @@ impl Convert for Coordinate {
 	}
 
 	fn revert_from(&mut self, p: Projection) {
-		match p { 
+		match p {
 			Projection::WebMercator => {
 				self.lat = y2lat(self.lat);
 				self.lon = x2lon(self.lon);
@@ -69,18 +69,22 @@ impl Convert for OsmData {
 }
 
 
+#[must_use]
 pub fn lat2y(lat: f64) -> f64 {
-	(lat.to_radians() / 2. + FRAC_PI_4).tan().log(E) * R
+	(lat.to_radians() / 2. + FRAC_PI_4).tan().ln() * R
 }
 
+#[must_use]
 pub fn lon2x(lon: f64) -> f64 {
 	R * lon.to_radians()
 }
 
+#[must_use]
 pub fn y2lat(y: f64) -> f64 {
-	(2. * (y / R).exp().atan() - FRAC_PI_2).to_degrees()
+	2.0f64.mul_add((y / R).exp().atan(), -FRAC_PI_2).to_degrees()
 }
 
+#[must_use]
 pub fn x2lon(x: f64) -> f64 {
 	(x / R).to_degrees()
 }
@@ -108,7 +112,7 @@ mod tests_convert {
 	fn projection_custom() {
 		let mut coordinate = Coordinate::new(50., 10.);
 		coordinate.convert_to(Projection::Custom(|c| c.lat = -c.lat ));
-		
+
 		assert_eq!(coordinate, Coordinate::new(-50., 10.));
 	}
 }

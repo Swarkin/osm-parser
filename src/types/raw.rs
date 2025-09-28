@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::{Id, Tags};
 use serde::Deserialize;
 
 #[derive(Default, Deserialize)]
