@@ -1,6 +1,4 @@
-pub mod raw;
-
-use crate::types::raw::{RawBounds, RawNode, RawOsmData};
+use raw::{RawBounds, RawNode, RawOsmData, RawRelation, RawRelationMember};
 use serde::{Deserialize, Serialize};
 
 #[cfg(not(feature = "rustc_hash"))]
@@ -10,8 +8,10 @@ type HashMap<K, V> = std::collections::HashMap<K, V>;
 type HashMap<K, V> = rustc_hash::FxHashMap<K, V>;
 
 pub type Id = i64;
+pub type Version = u32;
 pub type Nodes = HashMap<Id, Node>;
 pub type Ways = HashMap<Id, Way>;
+pub type Relations = HashMap<Id, Relation>;
 pub type Tags = HashMap<String, String>;
 
 //region Coordinate
@@ -136,7 +136,7 @@ pub struct Node {
 	pub id: Id,
 	pub pos: Coordinate,
 	pub timestamp: String,
-	pub version: u32,
+	pub version: Version,
 	pub changeset: u64,
 	pub user: String,
 	pub tags: Tags,
@@ -168,12 +168,68 @@ impl From<RawNode> for Node {
 pub struct Way {
 	pub id: Id,
 	pub timestamp: String,
-	pub version: u32,
+	pub version: Version,
 	pub changeset: u64,
 	pub user: String,
 	pub nodes: Vec<Id>,
 	#[serde(default)]
 	pub tags: Tags,
+}
+//endregion
+
+//region Relation
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RelationMember {
+	Node(Id),
+	Way(Id),
+	Relation(Id),
+}
+
+impl TryFrom<RawRelationMember> for RelationMember {
+	type Error = &'static str;
+
+	fn try_from(value: RawRelationMember) -> Result<Self, Self::Error> {
+		match value.r#type.as_str() {
+			"node" => Ok(Self::Node(value.r#ref)),
+			"way" => Ok(Self::Way(value.r#ref)),
+			"relation" => Ok(Self::Relation(value.r#ref)),
+			_ => Err("invalid relation member type"),
+		}
+	}
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Relation {
+	pub id: Id,
+	pub timestamp: String,
+	pub version: Version,
+	pub changeset: u64,
+	pub user: String,
+	#[serde(default)]
+	pub members: Vec<RelationMember>,
+	#[serde(default)]
+	pub tags: Tags,
+}
+
+impl TryFrom<RawRelation> for Relation {
+	type Error = &'static str;
+
+	fn try_from(value: RawRelation) -> Result<Self, Self::Error> {
+		let mut members = Vec::with_capacity(value.members.len());
+		for m in value.members {
+			members.push(m.try_into()?);
+		}
+
+		Ok(Self {
+			id: value.id,
+			timestamp: value.timestamp,
+			version: value.version,
+			changeset: value.changeset,
+			user: value.user,
+			members,
+			tags: value.tags,
+		})
+	}
 }
 //endregion
 
@@ -188,6 +244,7 @@ pub struct OsmData {
 	pub bounds: Bounds,
 	pub nodes: Nodes,
 	pub ways: Ways,
+	pub relations: Relations,
 }
 
 impl OsmData {
@@ -208,6 +265,7 @@ impl TryFrom<RawOsmData> for OsmData {
 	fn try_from(raw: RawOsmData) -> Result<Self, Self::Error> {
 		let mut nodes = Nodes::default();
 		let mut ways = Ways::default();
+		let mut relations = Relations::default();
 
 		for e in raw.elements {
 			let t = e["type"].as_str().ok_or("\"type\" is not a string")?;
@@ -221,7 +279,8 @@ impl TryFrom<RawOsmData> for OsmData {
 					ways.insert(way.id, way);
 				}
 				"relation" => {
-					// relations are not supported
+					let relation = serde_json::from_value::<RawRelation>(e)?;
+					relations.insert(relation.id, relation.try_into()?);
 				}
 				_ => Err("invalid element type")?,
 			}
@@ -236,6 +295,7 @@ impl TryFrom<RawOsmData> for OsmData {
 			bounds: raw.bounds.into(),
 			nodes,
 			ways,
+			relations,
 		})
 	}
 }
@@ -267,3 +327,60 @@ mod tests_tags {
 	}
 }
 //endregion
+
+pub mod raw {
+	use super::{Id, Tags};
+	use serde::Deserialize;
+
+	#[derive(Default, Deserialize)]
+	pub struct RawBounds {
+		pub minlat: f64,
+		pub maxlat: f64,
+		pub minlon: f64,
+		pub maxlon: f64,
+	}
+
+	#[derive(Deserialize)]
+	pub struct RawNode {
+		pub id: Id,
+		pub lat: f64,
+		pub lon: f64,
+		pub timestamp: String,
+		pub version: u32,
+		pub changeset: u64,
+		pub user: String,
+		#[serde(default)]
+		pub tags: Tags,
+	}
+
+	#[derive(Deserialize)]
+	pub struct RawRelationMember {
+		#[serde(rename = "type")]
+		pub r#type: String,
+		pub r#ref: Id,
+		pub role: String,
+	}
+
+	#[derive(Deserialize)]
+	pub struct RawRelation {
+		pub id: Id,
+		pub timestamp: String,
+		pub version: u32,
+		pub changeset: u64,
+		pub user: String,
+		pub members: Vec<RawRelationMember>,
+		#[serde(default)]
+		pub tags: Tags,
+	}
+
+	#[derive(Deserialize)]
+	pub struct RawOsmData {
+		pub version: String,
+		pub generator: String,
+		pub copyright: String,
+		pub attribution: String,
+		pub license: String,
+		pub bounds: RawBounds,
+		pub elements: Vec<serde_json::Value>,
+	}
+}
